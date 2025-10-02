@@ -303,12 +303,19 @@ class HengdaPropertyTotalSensor(SensorEntity):
             
         attributes = {
             "费用类型": self._charge_type_name,
-            "数据年份": self.coordinator.year
+            "年份": self.coordinator.year  # 将"数据年份"改为"年份"
         }
         
-        # 为月公摊费添加明细
+        # 为月公摊费添加明细和月份信息
         if self._total_type == "paid_public_total":
             paid_data = self.coordinator.data.get("paid", {})
+            
+            # 从公摊电费获取月份信息
+            public_electricity_data = paid_data.get("public_electricity", {})
+            month = public_electricity_data.get("month", "")
+            if month:
+                attributes["月份"] = month  # 添加月份属性
+            
             for item_key in PUBLIC_CHARGE_ITEMS:
                 item_name = {
                     "water_fee": "公摊水费",
