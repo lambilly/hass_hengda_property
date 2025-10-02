@@ -1,0 +1,11 @@
+{
+  "name": "恒大物业",
+  "render_readme": true,
+  "domains": ["sensor"],
+  "homeassistant": "2023.8.0",
+  "iot_class": "Cloud Polling",
+  "country": ["CN"],
+  "filename": "hengda_property.zip",
+  "zip_release": true,
+  "hide_default_branch": true
+}
