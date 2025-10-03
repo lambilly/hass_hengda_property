@@ -211,14 +211,17 @@ class HengdaPropertyUpdateTimeSensor(SensorEntity):
         if self.coordinator.data is None:
             return None
             
-        last_update = self.coordinator.data.get("last_update")
-        if last_update:
+        # 从coordinator的数据中获取最后更新时间
+        last_update_str = self.coordinator.data.get("last_update")
+        if last_update_str:
             try:
                 # 将ISO格式的时间字符串转换为可读格式
-                dt = datetime.fromisoformat(last_update.replace('Z', '+00:00'))
+                dt = datetime.fromisoformat(last_update_str.replace('Z', '+00:00'))
                 return dt.strftime("%Y-%m-%d %H:%M:%S")
-            except:
-                return last_update
+            except Exception:
+                # 如果解析失败，返回原始字符串
+                return last_update_str
+        
         return None
 
     @property
@@ -229,9 +232,22 @@ class HengdaPropertyUpdateTimeSensor(SensorEntity):
     @property
     def extra_state_attributes(self):
         """Return extra state attributes."""
+        # 添加下次预计更新时间
+        next_update = None
+        last_update_str = self.coordinator.data.get("last_update") if self.coordinator.data else None
+        
+        if last_update_str:
+            try:
+                last_update = datetime.fromisoformat(last_update_str.replace('Z', '+00:00'))
+                next_update = last_update + self.coordinator.update_interval
+                next_update = next_update.strftime("%Y-%m-%d %H:%M:%S")
+            except Exception:
+                pass
+            
         return {
             "费用类型": self._charge_type_name,
-            "数据年份": self.coordinator.year
+            "数据年份": self.coordinator.year,
+            "下次更新": next_update
         }
 
     async def async_added_to_hass(self) -> None:
@@ -244,7 +260,9 @@ class HengdaPropertyUpdateTimeSensor(SensorEntity):
 
     async def async_update(self) -> None:
         """Update the entity."""
-        await self.coordinator.async_request_refresh()
+        # 不要在这里调用coordinator的刷新，让它跟随coordinator的更新周期
+        # 实体状态会在coordinator更新时自动通过监听器更新
+        pass
 
 
 class HengdaPropertyTotalSensor(SensorEntity):
