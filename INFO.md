@@ -1,6 +1,6 @@
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-
 # 恒大物业 Home Assistant 集成
+
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 
 通过抓包恒大智慧社区 APP 获取用户认证信息，实现对恒大物业费用的自动化监控和管理。
 
