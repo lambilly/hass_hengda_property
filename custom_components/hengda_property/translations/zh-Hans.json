@@ -1,0 +1,20 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "union_id": "Union ID",
+          "authorization": "Authorization",
+          "year": "数据年份"
+        },
+        "description": "请输入恒大物业的认证信息和数据年份"
+      }
+    },
+    "abort": {
+      "already_configured": "该账号已配置"
+    },
+    "error": {
+      "invalid_auth": "认证信息无效"
+    }
+  }
+}
