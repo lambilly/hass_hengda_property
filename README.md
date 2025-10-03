@@ -16,10 +16,12 @@
 ## 安装方法
 
 ### 方法一：HACS 安装（推荐）
-1. 在 HACS 中添加自定义仓库
-2. 搜索 "恒大物业" 集成
-3. 点击安装
-4. 重启 Home Assistant
+1. 确保已安装 [HACS](https://hacs.xyz/)
+2. 在 HACS 的 "Integrations" 页面，点击右上角的三个点菜单，选择 "Custom repositories"
+3. 在弹出窗口中添加仓库地址：https://github.com/lambilly/hass_hengda_property/ ，类别选择 "Integration"
+4. 在 HACS 中搜索 "恒大物业"
+5. 点击下载
+6. 重启 Home Assistant
 
 ### 方法二：手动安装
 1. 将 `hengda_property` 文件夹复制到 `config/custom_components` 目录
