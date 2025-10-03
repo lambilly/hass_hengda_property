@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
@@ -170,10 +170,6 @@ class HengdaPropertySensor(SensorEntity):
             )
         )
 
-    async def async_update(self) -> None:
-        """Update the entity."""
-        await self.coordinator.async_request_refresh()
-
 
 class HengdaPropertyUpdateTimeSensor(SensorEntity):
     """Representation of a Hengda Property Update Time Sensor."""
@@ -239,15 +235,19 @@ class HengdaPropertyUpdateTimeSensor(SensorEntity):
         if last_update_str:
             try:
                 last_update = datetime.fromisoformat(last_update_str.replace('Z', '+00:00'))
-                next_update = last_update + self.coordinator.update_interval
-                next_update = next_update.strftime("%Y-%m-%d %H:%M:%S")
+                # 使用coordinator的更新间隔来计算下次更新时间
+                update_interval = self.coordinator.update_interval
+                if update_interval:
+                    next_update = last_update + update_interval
+                    next_update = next_update.strftime("%Y-%m-%d %H:%M:%S")
             except Exception:
                 pass
             
         return {
             "费用类型": self._charge_type_name,
             "数据年份": self.coordinator.year,
-            "下次更新": next_update
+            "下次更新": next_update,
+            "更新间隔": str(self.coordinator.update_interval) if self.coordinator.update_interval else "未设置"
         }
 
     async def async_added_to_hass(self) -> None:
@@ -257,12 +257,6 @@ class HengdaPropertyUpdateTimeSensor(SensorEntity):
                 self.async_write_ha_state
             )
         )
-
-    async def async_update(self) -> None:
-        """Update the entity."""
-        # 不要在这里调用coordinator的刷新，让它跟随coordinator的更新周期
-        # 实体状态会在coordinator更新时自动通过监听器更新
-        pass
 
 
 class HengdaPropertyTotalSensor(SensorEntity):
@@ -353,7 +347,3 @@ class HengdaPropertyTotalSensor(SensorEntity):
                 self.async_write_ha_state
             )
         )
-
-    async def async_update(self) -> None:
-        """Update the entity."""
-        await self.coordinator.async_request_refresh()
