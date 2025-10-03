@@ -2,7 +2,7 @@
 
 DOMAIN = "hengda_property"
 DEFAULT_NAME = "恒大物业"
-DEFAULT_SCAN_INTERVAL = 3600  # 1小时更新一次
+DEFAULT_SCAN_INTERVAL = 86400  # 24小时更新一次
 
 CONF_UNION_ID = "union_id"
 CONF_AUTHORIZATION = "authorization"
@@ -44,4 +44,5 @@ PUBLIC_CHARGE_ITEMS = [
     "public_electricity", # 公摊电费
     "elevator_electricity", # 电梯电费
     "pump_electricity"  # 水泵电费
+
 ]
