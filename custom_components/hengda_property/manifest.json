@@ -2,7 +2,7 @@
   "domain": "hengda_property",
   "name": "恒大物业",
   "codeowners": ["@lambilly"],
-  "version": "1.0.0",
+  "version": "1.0.1",
   "config_flow": true,
   "documentation": "https://github.com/lambilly/hass_hengda_property",
   "issue_tracker": "https://github.com/lambilly/hass_hengda_property/issues",

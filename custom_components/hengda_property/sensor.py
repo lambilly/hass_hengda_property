@@ -9,6 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.util import dt as dt_util
 
 from .const import (
     DOMAIN,
@@ -207,16 +208,16 @@ class HengdaPropertyUpdateTimeSensor(SensorEntity):
         if self.coordinator.data is None:
             return None
             
-        # 从coordinator的数据中获取最后更新时间
-        last_update_str = self.coordinator.data.get("last_update")
-        if last_update_str:
+        # 从coordinator的数据中获取最后成功更新时间
+        last_successful_update_str = self.coordinator.data.get("last_successful_update")
+        if last_successful_update_str:
             try:
                 # 将ISO格式的时间字符串转换为可读格式
-                dt = datetime.fromisoformat(last_update_str.replace('Z', '+00:00'))
+                dt = datetime.fromisoformat(last_successful_update_str.replace('Z', '+00:00'))
                 return dt.strftime("%Y-%m-%d %H:%M:%S")
             except Exception:
                 # 如果解析失败，返回原始字符串
-                return last_update_str
+                return last_successful_update_str
         
         return None
 
@@ -228,27 +229,34 @@ class HengdaPropertyUpdateTimeSensor(SensorEntity):
     @property
     def extra_state_attributes(self):
         """Return extra state attributes."""
-        # 添加下次预计更新时间
-        next_update = None
-        last_update_str = self.coordinator.data.get("last_update") if self.coordinator.data else None
+        attributes = {
+            "费用类型": self._charge_type_name,
+            "数据年份": self.coordinator.year,
+        }
         
+        # 添加最后尝试更新时间
+        last_update_str = self.coordinator.data.get("last_update") if self.coordinator.data else None
         if last_update_str:
             try:
                 last_update = datetime.fromisoformat(last_update_str.replace('Z', '+00:00'))
-                # 使用coordinator的更新间隔来计算下次更新时间
-                update_interval = self.coordinator.update_interval
-                if update_interval:
-                    next_update = last_update + update_interval
-                    next_update = next_update.strftime("%Y-%m-%d %H:%M:%S")
+                attributes["最后尝试更新"] = last_update.strftime("%Y-%m-%d %H:%M:%S")
             except Exception:
-                pass
+                attributes["最后尝试更新"] = last_update_str
+        
+        # 计算下次计划更新时间（每天03:00）
+        now = dt_util.now()
+        next_update = now.replace(hour=3, minute=0, second=0, microsecond=0)
+        if now.hour >= 3:
+            next_update += timedelta(days=1)
+        attributes["下次计划更新"] = next_update.strftime("%Y-%m-%d %H:%M:%S")
+        
+        # 添加更新状态
+        if self.coordinator.last_update_success:
+            attributes["更新状态"] = "成功"
+        else:
+            attributes["更新状态"] = "失败（使用缓存数据）"
             
-        return {
-            "费用类型": self._charge_type_name,
-            "数据年份": self.coordinator.year,
-            "下次更新": next_update,
-            "更新间隔": str(self.coordinator.update_interval) if self.coordinator.update_interval else "未设置"
-        }
+        return attributes
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""

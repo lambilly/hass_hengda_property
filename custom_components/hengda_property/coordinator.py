@@ -9,10 +9,10 @@ import json
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .const import (
     DOMAIN,
-    DEFAULT_SCAN_INTERVAL,
     CONF_UNION_ID,
     CONF_AUTHORIZATION,
     CONF_YEAR,
@@ -31,11 +31,14 @@ class HengdaPropertyCoordinator(DataUpdateCoordinator):
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize."""
+        # 计算到下一个03:00的时间
+        update_interval = self._calculate_next_update_interval()
+        
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_interval=timedelta(seconds=DEFAULT_SCAN_INTERVAL),
+            update_interval=update_interval,
         )
         
         self.entry = entry
@@ -45,12 +48,28 @@ class HengdaPropertyCoordinator(DataUpdateCoordinator):
         
         # 记录更新时间
         self.last_update_time = None
+        self.last_successful_update_time = None
+
+    def _calculate_next_update_interval(self):
+        """计算到下一个03:00的时间间隔"""
+        now = dt_util.now()
+        
+        # 设置目标时间为今天的03:00
+        target_time = now.replace(hour=3, minute=0, second=0, microsecond=0)
+        
+        # 如果现在已经过了03:00，就设置目标时间为明天的03:00
+        if now >= target_time:
+            target_time += timedelta(days=1)
+        
+        # 计算时间差
+        time_until_target = target_time - now
+        return time_until_target
 
     async def _async_update_data(self):
         """Update data via API."""
         try:
-            # 记录更新时间
-            self.last_update_time = datetime.now()
+            # 记录当前更新时间
+            current_update_time = datetime.now()
             
             # 获取三种类型的数据
             paid_data = await self._fetch_paid_bills()
@@ -60,16 +79,39 @@ class HengdaPropertyCoordinator(DataUpdateCoordinator):
             # 计算合计数据
             total_data = self._calculate_total_data(paid_data, prepaid_data, pending_data)
             
+            # 只有在所有API调用都成功时才更新成功时间
+            self.last_successful_update_time = current_update_time
+            self.last_update_time = current_update_time
+            
+            # 重新计算下一次更新时间（明天的03:00）
+            self.update_interval = self._calculate_next_update_interval()
+            
             return {
                 "paid": paid_data,
                 "prepaid": prepaid_data,
                 "pending": pending_data,
                 "total": total_data,
-                "last_update": self.last_update_time.isoformat()
+                "last_update": self.last_successful_update_time.isoformat(),
+                "last_successful_update": self.last_successful_update_time.isoformat()
             }
             
         except Exception as err:
-            raise UpdateFailed(f"更新数据时出错: {err}")
+            # 更新失败时，保持原有数据，只更新尝试时间
+            self.last_update_time = datetime.now()
+            _LOGGER.error("更新数据时出错: %s", err)
+            
+            # 重新计算下一次更新时间（1小时后重试）
+            self.update_interval = timedelta(hours=1)
+            
+            # 如果之前有成功的数据，返回原有数据
+            if self.data and "last_successful_update" in self.data:
+                # 保留成功数据，只更新最后尝试时间
+                current_data = self.data.copy()
+                current_data["last_update"] = self.last_update_time.isoformat()
+                return current_data
+            else:
+                # 第一次更新就失败，返回空数据但记录错误
+                raise UpdateFailed(f"更新数据时出错: {err}")
 
     async def _fetch_paid_bills(self):
         """获取已交物业费数据"""
